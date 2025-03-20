@@ -16,6 +16,13 @@ logger = logging.getLogger(__name__)
 def render_driver_comparison(session_id: str):
     """Render the driver comparison page."""
     try:
+        # Reset driver selection state if not already set to avoid the "driver '0' not found" error
+        if 'driver_comparison_initialized' not in st.session_state:
+            # First time initialization for this component
+            st.session_state.driver_comparison_initialized = True
+            st.session_state.driver1 = 0
+            st.session_state.driver2 = 0
+            
         # First get driver list to get names
         drivers_df, error = F1DataAPI.get_driver_list(session_id)
         if error:
@@ -122,23 +129,17 @@ def render_driver_comparison(session_id: str):
         # Driver selection
         col1, col2 = st.columns(2)
         with col1:
-            # Initialize with the first driver if not already set
-            if 'driver1' not in st.session_state:
-                st.session_state.driver1 = 0
-                
-            # Ensure the selected index is valid
-            if isinstance(st.session_state.driver1, int):
-                default_idx1 = min(max(0, st.session_state.driver1), len(available_drivers)-1)
-            else:
-                default_idx1 = 0
-            
             # Use the display list for selection to ensure values match exactly
             driver_displays = [d['display'] for d in available_drivers]
+            
+            # Ensure index is valid for available drivers
+            if isinstance(st.session_state.driver1, int):
+                st.session_state.driver1 = min(max(0, st.session_state.driver1), len(driver_displays)-1)
             
             selected_driver1 = st.selectbox(
                 "Select first driver",
                 options=driver_displays,
-                index=default_idx1,
+                index=st.session_state.driver1,
                 key="driver1"
             )
             
@@ -161,28 +162,28 @@ def render_driver_comparison(session_id: str):
                 st.error("No additional drivers available for comparison.")
                 return
             
-            # Initialize with the first remaining driver if not already set    
-            if 'driver2' not in st.session_state:
-                st.session_state.driver2 = 0
-            
-            # Ensure the selected index is valid
-            if isinstance(st.session_state.driver2, int):
-                default_idx2 = min(max(0, st.session_state.driver2), len(remaining_drivers)-1)
-            else:
-                default_idx2 = 0
-            
-            # Use the display list for remaining drivers
+            # Create the display list for remaining drivers
             remaining_displays = [d['display'] for d in remaining_drivers]
+            
+            # Ensure index is valid for remaining drivers
+            if isinstance(st.session_state.driver2, int):
+                st.session_state.driver2 = min(max(0, st.session_state.driver2), len(remaining_displays)-1)
             
             selected_driver2 = st.selectbox(
                 "Select second driver",
                 options=remaining_displays,
-                index=default_idx2,
+                index=st.session_state.driver2,
                 key="driver2"
             )
             
             # Save the index of the selected driver for session state persistence
-            st.session_state.driver2 = remaining_displays.index(selected_driver2)
+            try:
+                st.session_state.driver2 = remaining_displays.index(selected_driver2)
+            except ValueError:
+                # If selected_driver2 not in remaining_displays, reset to first available
+                st.session_state.driver2 = 0
+                if remaining_displays:
+                    selected_driver2 = remaining_displays[0]
             
             # Safely get driver number using a try/except block to handle potential errors
             try:
