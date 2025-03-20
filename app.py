@@ -192,6 +192,9 @@ def render_sidebar():
                     index=default_idx
                 )
                 
+                # Store the selected index in session state for persistence
+                st.session_state.session_selector = selected_idx
+                
                 # Only update session state if sessions list is not empty
                 if sessions and len(sessions) > selected_idx:
                     st.session_state.selected_session = sessions[selected_idx]

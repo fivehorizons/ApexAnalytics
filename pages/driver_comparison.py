@@ -122,30 +122,36 @@ def render_driver_comparison(session_id: str):
         # Driver selection
         col1, col2 = st.columns(2)
         with col1:
-            if 'driver1' in st.session_state and isinstance(st.session_state.driver1, int) and st.session_state.driver1 < len(available_drivers):
-                default_idx1 = st.session_state.driver1
+            # Initialize with the first driver if not already set
+            if 'driver1' not in st.session_state:
+                st.session_state.driver1 = 0
+                
+            # Ensure the selected index is valid
+            if isinstance(st.session_state.driver1, int):
+                default_idx1 = min(max(0, st.session_state.driver1), len(available_drivers)-1)
             else:
                 default_idx1 = 0
             
+            # Use the display list for selection to ensure values match exactly
+            driver_displays = [d['display'] for d in available_drivers]
+            
             selected_driver1 = st.selectbox(
                 "Select first driver",
-                options=[d['display'] for d in available_drivers],
+                options=driver_displays,
                 index=default_idx1,
                 key="driver1"
             )
+            
+            # Save the index of the selected driver for session state persistence
+            st.session_state.driver1 = driver_displays.index(selected_driver1)
             
             # Safely get driver number using a try/except block to handle potential errors
             try:
                 driver1_num = next(d['number'] for d in available_drivers if d['display'] == selected_driver1)
             except StopIteration:
-                if available_drivers:
-                    # Fallback to the first driver if the selected one isn't found
-                    st.warning(f"Selected driver '{selected_driver1}' not found. Using first available driver instead.")
-                    driver1_num = available_drivers[0]['number']
-                    selected_driver1 = available_drivers[0]['display']
-                else:
-                    st.error("No drivers available for selection.")
-                    return
+                st.warning(f"Selected driver '{selected_driver1}' not found. Using first available driver instead.")
+                driver1_num = available_drivers[0]['number']
+                selected_driver1 = available_drivers[0]['display']
             
         with col2:
             # Remove first driver from options
@@ -154,31 +160,37 @@ def render_driver_comparison(session_id: str):
             if not remaining_drivers:
                 st.error("No additional drivers available for comparison.")
                 return
-                
-            if 'driver2' in st.session_state and isinstance(st.session_state.driver2, int) and st.session_state.driver2 < len(remaining_drivers):
-                default_idx2 = st.session_state.driver2
+            
+            # Initialize with the first remaining driver if not already set    
+            if 'driver2' not in st.session_state:
+                st.session_state.driver2 = 0
+            
+            # Ensure the selected index is valid
+            if isinstance(st.session_state.driver2, int):
+                default_idx2 = min(max(0, st.session_state.driver2), len(remaining_drivers)-1)
             else:
                 default_idx2 = 0
-                
+            
+            # Use the display list for remaining drivers
+            remaining_displays = [d['display'] for d in remaining_drivers]
+            
             selected_driver2 = st.selectbox(
                 "Select second driver",
-                options=[d['display'] for d in remaining_drivers],
+                options=remaining_displays,
                 index=default_idx2,
                 key="driver2"
             )
+            
+            # Save the index of the selected driver for session state persistence
+            st.session_state.driver2 = remaining_displays.index(selected_driver2)
             
             # Safely get driver number using a try/except block to handle potential errors
             try:
                 driver2_num = next(d['number'] for d in available_drivers if d['display'] == selected_driver2)
             except StopIteration:
-                if remaining_drivers:
-                    # Fallback to the first remaining driver if the selected one isn't found
-                    st.warning(f"Selected driver '{selected_driver2}' not found. Using first available driver instead.")
-                    driver2_num = remaining_drivers[0]['number']
-                    selected_driver2 = remaining_drivers[0]['display']
-                else:
-                    st.error("No second driver available for comparison.")
-                    return
+                st.warning(f"Selected driver '{selected_driver2}' not found. Using first available driver instead.")
+                driver2_num = remaining_drivers[0]['number']
+                selected_driver2 = remaining_drivers[0]['display']
             
         # Get data for selected drivers
         driver1_data = processed_laps[processed_laps['driver_number'] == driver1_num].copy()
