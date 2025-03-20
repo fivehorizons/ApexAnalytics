@@ -16,13 +16,18 @@ logger = logging.getLogger(__name__)
 def render_driver_comparison(session_id: str):
     """Render the driver comparison page."""
     try:
-        # Reset driver selection state if not already set to avoid the "driver '0' not found" error
-        if 'driver_comparison_initialized' not in st.session_state:
-            # First time initialization for this component
-            st.session_state.driver_comparison_initialized = True
-            st.session_state.driver1 = 0
-            st.session_state.driver2 = 0
-            
+        # Initialize specific session state keys for driver comparison to avoid conflicts
+        keys_to_init = [
+            "dc_initialized", 
+            "dc_driver1_idx",
+            "dc_driver2_idx"
+        ]
+        
+        # Set default values if not already initialized
+        for key in keys_to_init:
+            if key not in st.session_state:
+                st.session_state[key] = False if key == "dc_initialized" else 0
+                
         # First get driver list to get names
         drivers_df, error = F1DataAPI.get_driver_list(session_id)
         if error:
@@ -133,18 +138,18 @@ def render_driver_comparison(session_id: str):
             driver_displays = [d['display'] for d in available_drivers]
             
             # Ensure index is valid for available drivers
-            if isinstance(st.session_state.driver1, int):
-                st.session_state.driver1 = min(max(0, st.session_state.driver1), len(driver_displays)-1)
+            if isinstance(st.session_state.dc_driver1_idx, int):
+                st.session_state.dc_driver1_idx = min(max(0, st.session_state.dc_driver1_idx), len(driver_displays)-1)
             
             selected_driver1 = st.selectbox(
                 "Select first driver",
                 options=driver_displays,
-                index=st.session_state.driver1,
+                index=st.session_state.dc_driver1_idx,
                 key="driver1"
             )
             
             # Save the index of the selected driver for session state persistence
-            st.session_state.driver1 = driver_displays.index(selected_driver1)
+            st.session_state.dc_driver1_idx = driver_displays.index(selected_driver1)
             
             # Safely get driver number using a try/except block to handle potential errors
             try:
@@ -166,22 +171,22 @@ def render_driver_comparison(session_id: str):
             remaining_displays = [d['display'] for d in remaining_drivers]
             
             # Ensure index is valid for remaining drivers
-            if isinstance(st.session_state.driver2, int):
-                st.session_state.driver2 = min(max(0, st.session_state.driver2), len(remaining_displays)-1)
+            if isinstance(st.session_state.dc_driver2_idx, int):
+                st.session_state.dc_driver2_idx = min(max(0, st.session_state.dc_driver2_idx), len(remaining_displays)-1)
             
             selected_driver2 = st.selectbox(
                 "Select second driver",
                 options=remaining_displays,
-                index=st.session_state.driver2,
+                index=st.session_state.dc_driver2_idx,
                 key="driver2"
             )
             
             # Save the index of the selected driver for session state persistence
             try:
-                st.session_state.driver2 = remaining_displays.index(selected_driver2)
+                st.session_state.dc_driver2_idx = remaining_displays.index(selected_driver2)
             except ValueError:
                 # If selected_driver2 not in remaining_displays, reset to first available
-                st.session_state.driver2 = 0
+                st.session_state.dc_driver2_idx = 0
                 if remaining_displays:
                     selected_driver2 = remaining_displays[0]
             

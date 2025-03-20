@@ -75,7 +75,10 @@ def initialize_session_state():
             "driver2": 0, 
             "team1_selector": 0, 
             "team2_selector": 0,
-            "session_selector": 0
+            "session_selector": 0,
+            "dc_driver1_idx": 0,
+            "dc_driver2_idx": 0,
+            "dc_initialized": False
         }
         for key, default_value in widget_keys.items():
             if key not in st.session_state:
