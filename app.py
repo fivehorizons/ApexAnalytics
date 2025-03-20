@@ -174,6 +174,14 @@ def render_sidebar():
                     logger.warning(f"Error formatting session name: {e}")
                     return "Unknown Session"
             
+            # Callback function to update session state when selection changes
+            def on_session_select():
+                selected_idx = st.session_state.session_selector
+                if sessions and len(sessions) > selected_idx:
+                    st.session_state.selected_session = sessions[selected_idx]
+                else:
+                    st.session_state.selected_session = None
+            
             # Session selection with error handling
             try:
                 if not sessions:
@@ -192,11 +200,9 @@ def render_sidebar():
                     format_func=lambda i: format_session_name(sessions[i]),
                     help="Choose a session to analyze",
                     key="session_selector",
-                    index=default_idx
+                    index=default_idx,
+                    on_change=on_session_select
                 )
-                
-                # Store the selected index in session state for persistence
-                st.session_state.session_selector = selected_idx
                 
                 # Only update session state if sessions list is not empty
                 if sessions and len(sessions) > selected_idx:
@@ -214,9 +220,6 @@ def render_sidebar():
             except Exception as e:
                 logger.error(f"Error in session selection: {e}")
                 st.error("Error displaying session selection. Please try refreshing.")
-                # Reset the session selector if there's an error
-                if 'session_selector' in st.session_state:
-                    st.session_state.session_selector = 0
         else:
             st.warning("No sessions available. Please check your connection and try again.")
 

@@ -141,15 +141,18 @@ def render_driver_comparison(session_id: str):
             if isinstance(st.session_state.dc_driver1_idx, int):
                 st.session_state.dc_driver1_idx = min(max(0, st.session_state.dc_driver1_idx), len(driver_displays)-1)
             
+            # Callback for first driver selection
+            def on_driver1_select():
+                # Session state will be automatically updated by Streamlit
+                pass
+            
             selected_driver1 = st.selectbox(
                 "Select first driver",
                 options=driver_displays,
                 index=st.session_state.dc_driver1_idx,
-                key="driver1"
+                key="driver1",  # Keep original key for the widget
+                on_change=on_driver1_select
             )
-            
-            # Save the index of the selected driver for session state persistence
-            st.session_state.dc_driver1_idx = driver_displays.index(selected_driver1)
             
             # Safely get driver number using a try/except block to handle potential errors
             try:
@@ -174,21 +177,18 @@ def render_driver_comparison(session_id: str):
             if isinstance(st.session_state.dc_driver2_idx, int):
                 st.session_state.dc_driver2_idx = min(max(0, st.session_state.dc_driver2_idx), len(remaining_displays)-1)
             
+            # Callback for second driver selection
+            def on_driver2_select():
+                # Session state will be automatically updated by Streamlit
+                pass
+            
             selected_driver2 = st.selectbox(
                 "Select second driver",
                 options=remaining_displays,
                 index=st.session_state.dc_driver2_idx,
-                key="driver2"
+                key="driver2",  # Keep original key for the widget
+                on_change=on_driver2_select
             )
-            
-            # Save the index of the selected driver for session state persistence
-            try:
-                st.session_state.dc_driver2_idx = remaining_displays.index(selected_driver2)
-            except ValueError:
-                # If selected_driver2 not in remaining_displays, reset to first available
-                st.session_state.dc_driver2_idx = 0
-                if remaining_displays:
-                    selected_driver2 = remaining_displays[0]
             
             # Safely get driver number using a try/except block to handle potential errors
             try:
