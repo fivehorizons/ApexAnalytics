@@ -329,6 +329,10 @@ def render_team_analysis(results_df, session_id):
     analysis_df = results_df.copy()
     analysis_df = analysis_df.rename(columns={team_column: 'Team'})
     
+    # Handle lap number column
+    if 'lap_number' in analysis_df.columns:
+        analysis_df['Laps'] = analysis_df['lap_number']
+    
     # Ensure we have the required columns for analysis
     required_columns = ['Team', 'fastest_lap', 'Laps']
     missing_columns = set(required_columns) - set(analysis_df.columns)
