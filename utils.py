@@ -135,7 +135,6 @@ class F1DataAPI:
         return None, error_msg
 
     @staticmethod
-    @lru_cache(maxsize=32)
     def get_available_sessions() -> Tuple[List[Dict], Optional[str]]:
         """Fetch list of available sessions from OpenF1 API with caching."""
         data, error = F1DataAPI._make_request(

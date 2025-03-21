@@ -101,7 +101,12 @@ def initialize_session_state():
 def clear_cache():
     """Clear all cached data."""
     try:
+        # Clear the entire cache
         st.cache_data.clear()
+        
+        # Explicitly clear the sessions cache
+        get_available_sessions_cached.clear()
+        
         st.session_state.last_refresh = datetime.now()
         # Use st.rerun instead of experimental_rerun
         st.rerun()
@@ -120,7 +125,7 @@ def check_api_health():
         st.session_state.api_health = False
         return False
 
-@st.cache_data(ttl=600)
+@st.cache_data(ttl=300)  # Reduce TTL to 5 minutes for more frequent updates
 def get_available_sessions_cached():
     """Cached wrapper for getting available sessions."""
     sessions, error = F1DataAPI.get_available_sessions()
@@ -199,14 +204,20 @@ def render_sidebar():
             if st.button("Reset Error Counter"):
                 st.session_state.error_count = 0
                 st.rerun()
+                
+        # Show last refresh time if available
+        if st.session_state.last_refresh:
+            last_refresh = st.session_state.last_refresh
+            st.caption(f"Last refreshed: {last_refresh.strftime('%Y-%m-%d %H:%M:%S')}")
         
-        # Fetch available sessions with retry mechanism
+        # Fetch available sessions with retry mechanism and caching
         retry_count = 0
         max_retries = 3
         sessions = None
         
         while retry_count < max_retries and not sessions:
-            sessions, error = F1DataAPI.get_available_sessions()
+            # Use the cached function instead of direct API call
+            sessions, error = get_available_sessions_cached()
             if error:
                 if "timeout" in str(error).lower():
                     retry_count += 1
