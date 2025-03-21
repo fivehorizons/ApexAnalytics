@@ -3,238 +3,227 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import logging
+import matplotlib.pyplot as plt
 from utils import (
     F1DataAPI, 
     process_lap_times, 
     calculate_advanced_statistics, 
     analyze_sector_performance,
     export_data,
-    format_lap_time
+    format_lap_time,
+    create_sector_heatmap,
+    create_interactive_sector_chart,
+    visualize_sector_comparison
 )
 from styles import STATS_GRID_STYLE
 
 # Configure logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def render_race_analysis(session_id: str):
     """Render the race analysis page."""
     try:
-        # Get lap times data
-        lap_times_df, error = F1DataAPI.get_lap_times(session_id)
-        if error:
-            st.error(f"Error loading lap times: {error}")
+        # Convert session_id to integer
+        try:
+            session_id = int(session_id)
+        except (ValueError, TypeError) as e:
+            st.error(f"Invalid session ID: {session_id}")
             return
             
-        if lap_times_df is None or lap_times_df.empty:
-            st.warning("No lap time data available for this session.")
-            return
-            
-        # Process lap times
-        processed_laps = process_lap_times(lap_times_df)
-        if processed_laps.empty:
-            st.warning("No valid lap times available for analysis.")
-            return
-            
-        # Calculate race statistics
-        race_stats = calculate_advanced_statistics(processed_laps)
-        if not race_stats:
-            st.warning("Could not calculate race statistics.")
-            return
-            
-        # Display overall race statistics
-        st.subheader("Race Overview")
-        col1, col2, col3 = st.columns(3)
+        st.title("Race Analysis")
         
-        with col1:
-            st.metric("Fastest Lap", format_lap_time(race_stats.get('fastest_lap', 0)))
-            st.metric("Total Laps", race_stats.get('total_laps', 0))
-            
-        with col2:
-            st.metric("Average Lap", format_lap_time(race_stats.get('average_lap', 0)))
-            st.metric("Drivers", race_stats.get('drivers_count', 0))
-            
-        with col3:
-            st.metric("Lap Time Variation", f"{race_stats.get('std_dev', 0):.3f}s")
-            if 'consistency_score' in race_stats:
-                st.metric("Race Consistency", f"{race_stats.get('consistency_score', 0):.2f}")
+        # Create tabs for different analysis views
+        tabs = st.tabs([
+            "Overview", 
+            "Lap Analysis", 
+            "Sector Analysis",
+            "Intervals",
+            "Position Data",
+            "Pit Stops",
+            "Team Radio",
+            "Race Control",
+            "Export"
+        ])
+        
+        # Get all necessary data upfront
+        with st.spinner("Loading lap times..."):
+            lap_times_df, error = F1DataAPI.get_lap_times(session_id)
+            if error:
+                st.error(f"Error loading lap times: {error}")
+                return
                 
-        # Create lap time distribution plot
-        st.subheader("Lap Time Distribution")
-        fig = go.Figure()
+            if lap_times_df is None or lap_times_df.empty:
+                st.warning("No lap time data available for this session.")
+                return
+                
+            # Process lap times
+            processed_laps = process_lap_times(lap_times_df)
+            if processed_laps.empty:
+                st.warning("No valid lap times available for analysis.")
+                return
         
-        # Add histogram of lap times
-        fig.add_trace(go.Histogram(
-            x=processed_laps['lap_time_seconds'],
-            nbinsx=30,
-            name="Lap Times"
-        ))
+        # Get sector times
+        with st.spinner("Loading sector data..."):
+            sector_data, sector_error = F1DataAPI.get_sector_times(session_id)
+            if sector_error:
+                st.warning(f"Error loading sector data: {sector_error}")
+                sector_data = None
         
-        # Add vertical lines for key statistics
-        if 'fastest_lap' in race_stats:
-            fig.add_vline(
-                x=race_stats['fastest_lap'],
-                line_dash="dash",
-                line_color="green",
-                annotation_text="Fastest Lap"
-            )
+        # Get intervals data
+        with st.spinner("Loading interval data..."):
+            intervals_data, intervals_error = F1DataAPI.get_intervals(session_id)
+            if intervals_error:
+                st.warning(f"Error loading interval data: {intervals_error}")
+                intervals_data = None
+        
+        # Get position data
+        with st.spinner("Loading position data..."):
+            position_data, position_error = F1DataAPI.get_position_data(session_id)
+            if position_error:
+                st.warning(f"Error loading position data: {position_error}")
+                position_data = None
+        
+        # Get pit stop data
+        with st.spinner("Loading pit stop data..."):
+            pit_data, pit_error = F1DataAPI.get_pit_data(session_id)
+            if pit_error:
+                st.warning(f"Error loading pit stop data: {pit_error}")
+                pit_data = None
+        
+        # Get team radio data
+        with st.spinner("Loading team radio data..."):
+            radio_data, radio_error = F1DataAPI.get_team_radio(session_id)
+            if radio_error:
+                st.warning(f"Error loading team radio data: {radio_error}")
+                radio_data = None
+        
+        # Get race control messages
+        with st.spinner("Loading race control data..."):
+            control_data, control_error = F1DataAPI.get_race_control_messages(session_id)
+            if control_error:
+                st.warning(f"Error loading race control data: {control_error}")
+                control_data = None
+        
+        # Overview Tab
+        with tabs[0]:
+            render_overview_tab(processed_laps)
             
-        if 'average_lap' in race_stats:
-            fig.add_vline(
-                x=race_stats['average_lap'],
-                line_dash="dash",
-                line_color="red",
-                annotation_text="Average Lap"
-            )
+        # Lap Analysis Tab
+        with tabs[1]:
+            render_lap_analysis_tab(processed_laps, session_id)
             
-        fig.update_layout(
-            title="Distribution of Lap Times",
-            xaxis_title="Lap Time (seconds)",
-            yaxis_title="Count",
-            showlegend=True
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Create lap time progression plot
-        st.subheader("Lap Time Progression")
-        fig = go.Figure()
-        
-        # Group by driver and plot each driver's lap times
-        for driver in processed_laps['driver_number'].unique():
-            driver_laps = processed_laps[processed_laps['driver_number'] == driver]
-            fig.add_trace(go.Scatter(
-                x=driver_laps['lap_number'],
-                y=driver_laps['lap_time_seconds'],
-                name=f"Driver {driver}",
-                mode='lines+markers'
-            ))
+        # Sector Analysis Tab
+        with tabs[2]:
+            render_sector_analysis_tab(sector_data, session_id)
             
-        fig.update_layout(
-            title="Lap Times Throughout the Race",
-            xaxis_title="Lap Number",
-            yaxis_title="Lap Time (seconds)",
-            showlegend=True
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Display advanced statistics if available
-        if len(processed_laps) >= 3:
-            st.subheader("Advanced Statistics")
-            col1, col2 = st.columns(2)
+        # Intervals Tab
+        with tabs[3]:
+            render_intervals_tab(intervals_data, session_id)
             
-            with col1:
-                if 'skewness' in race_stats:
-                    st.metric("Skewness", f"{race_stats['skewness']:.3f}")
-                if 'percentile_5' in race_stats:
-                    st.metric("5th Percentile", format_lap_time(race_stats['percentile_5']))
-                    
-            with col2:
-                if 'kurtosis' in race_stats:
-                    st.metric("Kurtosis", f"{race_stats['kurtosis']:.3f}")
-                if 'percentile_95' in race_stats:
-                    st.metric("95th Percentile", format_lap_time(race_stats['percentile_95']))
-                    
+        # Position Data Tab
+        with tabs[4]:
+            render_position_tab(position_data, session_id)
+            
+        # Pit Stops Tab
+        with tabs[5]:
+            render_pit_stops_tab(pit_data, session_id)
+            
+        # Team Radio Tab
+        with tabs[6]:
+            render_team_radio_tab(radio_data, session_id)
+            
+        # Race Control Tab
+        with tabs[7]:
+            render_race_control_tab(control_data)
+            
+        # Export Tab
+        with tabs[8]:
+            render_export_tab(processed_laps)
+            
     except Exception as e:
         st.error(f"An error occurred while rendering race analysis: {str(e)}")
         logger.error(f"Race analysis error: {str(e)}", exc_info=True)
 
 def render_overview_tab(processed_laps):
-    """Render the overview tab with enhanced statistics visualization."""
-    st.subheader("Session Statistics")
+    """Render the overview tab with race statistics."""
+    st.header("Race Overview")
     
-    # Calculate advanced statistics
-    advanced_stats = calculate_advanced_statistics(processed_laps)
+    # Calculate race statistics
+    race_stats = calculate_advanced_statistics(processed_laps)
+    if not race_stats:
+        st.warning("Could not calculate race statistics.")
+        return
     
-    # Display statistics in a visually appealing grid
-    st.markdown(STATS_GRID_STYLE, unsafe_allow_html=True)
-    
-    # Create metrics grid
+    # Display overall race statistics
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.metric(
-            "Average Lap Time",
-            f"{advanced_stats.get('average_lap', 0):.3f}s",
-            delta=None
-        )
-        st.metric(
-            "Fastest Lap",
-            f"{advanced_stats.get('fastest_lap', 0):.3f}s",
-            delta=None
-        )
-    
+        st.metric("Fastest Lap", format_lap_time(race_stats.get('fastest_lap', 0)))
+        st.metric("Total Laps", race_stats.get('total_laps', 0))
+        
     with col2:
-        st.metric(
-            "Median Lap Time",
-            f"{advanced_stats.get('median_lap', 0):.3f}s",
-            delta=None
-        )
-        st.metric(
-            "Lap Time Std Dev",
-            f"{advanced_stats.get('std_dev', 0):.3f}s",
-            delta=None
-        )
-    
+        st.metric("Average Lap", format_lap_time(race_stats.get('average_lap', 0)))
+        st.metric("Drivers", race_stats.get('drivers_count', 0))
+        
     with col3:
-        st.metric(
-            "Total Laps",
-            str(advanced_stats.get('total_laps', 0)),
-            delta=None
-        )
-        st.metric(
-            "Drivers",
-            str(advanced_stats.get('drivers_count', 0)),
-            delta=None
-        )
+        st.metric("Lap Time Variation", f"{race_stats.get('std_dev', 0):.3f}s")
+        if 'consistency_score' in race_stats:
+            st.metric("Race Consistency", f"{race_stats.get('consistency_score', 0):.2f}")
     
-    # Create lap time distribution visualization
-    create_lap_time_distribution(processed_laps, advanced_stats)
-
-def create_lap_time_distribution(processed_laps, advanced_stats):
-    """Create an enhanced lap time distribution visualization."""
+    # Create lap time distribution plot
     st.subheader("Lap Time Distribution")
-    
-    # Create violin plot
     fig = go.Figure()
     
-    fig.add_trace(go.Violin(
-        y=processed_laps['lap_time_seconds'],
-        box_visible=True,
-        line_color='#ff1801',
-        fillcolor='rgba(255, 24, 1, 0.3)',
-        opacity=0.6,
-        meanline_visible=True,
+    # Add histogram of lap times
+    fig.add_trace(go.Histogram(
+        x=processed_laps['lap_time_seconds'],
+        nbinsx=30,
         name="Lap Times"
     ))
     
-    # Add mean and median lines
-    fig.add_hline(
-        y=advanced_stats['average_lap'],
-        line_dash="dash",
-        line_color="red",
-        annotation_text="Mean",
-        annotation_position="right"
-    )
-    
-    fig.add_hline(
-        y=advanced_stats['median_lap'],
-        line_dash="dash",
-        line_color="green",
-        annotation_text="Median",
-        annotation_position="left"
-    )
-    
+    # Add vertical lines for key statistics
+    if 'fastest_lap' in race_stats:
+        fig.add_vline(
+            x=race_stats['fastest_lap'],
+            line_dash="dash",
+            line_color="green",
+            annotation_text="Fastest Lap"
+        )
+        
+    if 'average_lap' in race_stats:
+        fig.add_vline(
+            x=race_stats['average_lap'],
+            line_dash="dash",
+            line_color="red",
+            annotation_text="Average Lap"
+        )
+        
     fig.update_layout(
-        title="Lap Time Distribution Analysis",
-        yaxis_title="Lap Time (seconds)",
-        template="plotly_white",
-        showlegend=False,
-        hoverlabel=dict(bgcolor="white"),
-        margin=dict(t=50, b=50, l=50, r=50)
+        title="Distribution of Lap Times",
+        xaxis_title="Lap Time (seconds)",
+        yaxis_title="Count",
+        showlegend=True
     )
     
     st.plotly_chart(fig, use_container_width=True)
+    
+    # Display advanced statistics if available
+    if len(processed_laps) >= 3:
+        st.subheader("Advanced Statistics")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if 'skewness' in race_stats:
+                st.metric("Skewness", f"{race_stats['skewness']:.3f}")
+            if 'percentile_5' in race_stats:
+                st.metric("5th Percentile", format_lap_time(race_stats['percentile_5']))
+                
+        with col2:
+            if 'kurtosis' in race_stats:
+                st.metric("Kurtosis", f"{race_stats['kurtosis']:.3f}")
+            if 'percentile_95' in race_stats:
+                st.metric("95th Percentile", format_lap_time(race_stats['percentile_95']))
 
 def render_lap_analysis_tab(processed_laps, session_id):
     """Render the lap analysis tab with enhanced visualizations."""
@@ -298,154 +287,243 @@ def create_lap_progression_chart(processed_laps, selected_drivers, drivers_df):
     
     st.plotly_chart(fig, use_container_width=True)
 
-def render_sector_analysis_tab(processed_laps, session_id):
-    """Render the sector analysis tab with enhanced visualizations."""
-    st.subheader("Sector Analysis")
-    
-    # Analyze sector performance
-    sector_stats = analyze_sector_performance(processed_laps)
-    
-    if sector_stats:
-        # Create sector comparison visualization
-        create_sector_comparison_chart(sector_stats)
+def render_sector_analysis_tab(sector_data, session_id):
+    """Render enhanced sector analysis with new visualizations."""
+    if sector_data is None or sector_data.empty:
+        st.warning("No sector data available for this session.")
+        return
         
-        # Add driver-specific sector analysis
-        render_driver_sector_analysis(session_id, processed_laps)
-
-def create_sector_comparison_chart(sector_stats):
-    """Create an enhanced sector comparison visualization."""
-    sector_data = pd.DataFrame({
-        'Sector': ['Sector 1', 'Sector 2', 'Sector 3'],
-        'Average Time': [
-            sector_stats.get('sector1_avg', 0),
-            sector_stats.get('sector2_avg', 0),
-            sector_stats.get('sector3_avg', 0)
-        ],
-        'Best Time': [
-            sector_stats.get('sector1_min', 0),
-            sector_stats.get('sector2_min', 0),
-            sector_stats.get('sector3_min', 0)
-        ],
-        'Standard Deviation': [
-            sector_stats.get('sector1_std', 0),
-            sector_stats.get('sector2_std', 0),
-            sector_stats.get('sector3_std', 0)
-        ]
-    })
-    
-    fig = go.Figure()
-    
-    # Add bars for average time
-    fig.add_trace(go.Bar(
-        name='Average Time',
-        x=sector_data['Sector'],
-        y=sector_data['Average Time'],
-        marker_color='#1E88E5'
-    ))
-    
-    # Add bars for best time
-    fig.add_trace(go.Bar(
-        name='Best Time',
-        x=sector_data['Sector'],
-        y=sector_data['Best Time'],
-        marker_color='#ff1801'
-    ))
-    
-    fig.update_layout(
-        title="Sector Time Comparison",
-        xaxis_title="Sector",
-        yaxis_title="Time (seconds)",
-        barmode='group',
-        template="plotly_white",
-        hoverlabel=dict(bgcolor="white"),
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1
-        ),
-        margin=dict(t=50, b=50, l=50, r=50)
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
-
-def render_driver_sector_analysis(session_id, processed_laps):
-    """Render driver-specific sector analysis."""
+    # Get driver list for filtering
     drivers_df, error = F1DataAPI.get_driver_list(session_id)
     if error:
         st.error(f"Error loading driver data: {error}")
         return
         
-    if drivers_df and len(drivers_df) > 0:
-        if isinstance(drivers_df, list):
-            drivers_df = pd.DataFrame(drivers_df)
+    # Driver selection
+    if isinstance(drivers_df, list):
+        drivers_df = pd.DataFrame(drivers_df)
         
-        st.subheader("Driver Sector Performance")
-        
-        selected_driver = st.selectbox(
-            "Select Driver",
-            options=drivers_df['driver_number'].tolist(),
-            format_func=lambda x: f"{drivers_df[drivers_df['driver_number'] == x]['driver_name'].iloc[0]} ({x})"
-        )
-        
-        driver_sectors = processed_laps[processed_laps['driver_number'] == selected_driver]
-        if not driver_sectors.empty:
-            create_driver_sector_chart(driver_sectors, drivers_df, selected_driver)
-
-def create_driver_sector_chart(driver_sectors, drivers_df, selected_driver):
-    """Create an enhanced driver sector visualization."""
-    driver_name = drivers_df[drivers_df['driver_number'] == selected_driver]['driver_name'].iloc[0]
+    selected_driver = st.selectbox(
+        "Select Driver for Sector Analysis",
+        options=[None] + drivers_df['driver_number'].tolist(),
+        format_func=lambda x: "All Drivers" if x is None else f"{drivers_df[drivers_df['driver_number'] == x]['driver_name'].iloc[0]} ({x})"
+    )
     
+    # Analyze sector performance
+    sector_stats = analyze_sector_performance(sector_data, selected_driver)
+    
+    # Display sector statistics
+    st.subheader("Sector Performance Statistics")
+    col1, col2, col3 = st.columns(3)
+    
+    for i, sector in enumerate(['sector1', 'sector2', 'sector3'], 1):
+        col = [col1, col2, col3][i-1]
+        with col:
+            st.metric(f"Sector {i} Best", f"{sector_stats.get(f'{sector}_min', 0):.3f}s")
+            st.metric(f"Sector {i} Average", f"{sector_stats.get(f'{sector}_avg', 0):.3f}s")
+            if f'{sector}_trend' in sector_stats:
+                st.metric(f"Sector {i} Trend", sector_stats[f'{sector}_trend'])
+    
+    # Display theoretical best lap if available
+    if 'theoretical_best_lap' in sector_stats:
+        st.metric(
+            "Theoretical Best Lap",
+            f"{sector_stats['theoretical_best_lap']:.3f}s",
+            delta=f"{-sector_stats['theoretical_vs_actual']:.3f}s vs actual"
+        )
+    
+    # Create sector visualizations
+    st.subheader("Sector Time Analysis")
+    
+    # Add visualization type selector
+    viz_type = st.radio(
+        "Select Visualization",
+        ["Sector Comparison", "Sector Heatmap", "Interactive Timeline"],
+        horizontal=True
+    )
+    
+    if viz_type == "Sector Comparison":
+        fig = visualize_sector_comparison(sector_stats)
+        st.pyplot(fig)
+        
+    elif viz_type == "Sector Heatmap":
+        fig = create_sector_heatmap(sector_data, selected_driver)
+        st.pyplot(fig)
+        
+    else:  # Interactive Timeline
+        fig = create_interactive_sector_chart(sector_data, selected_driver)
+        st.plotly_chart(fig, use_container_width=True)
+
+def render_intervals_tab(intervals_data, session_id):
+    """Render intervals analysis."""
+    if intervals_data is None or intervals_data.empty:
+        st.warning("No interval data available for this session.")
+        return
+        
+    st.subheader("Race Intervals Analysis")
+    
+    # Get driver list for reference
+    drivers_df, _ = F1DataAPI.get_driver_list(session_id)
+    if isinstance(drivers_df, list):
+        drivers_df = pd.DataFrame(drivers_df)
+    
+    # Create interval visualization
     fig = go.Figure()
     
-    # Add sector 1 times
-    fig.add_trace(go.Scatter(
-        x=driver_sectors['lap_number'],
-        y=driver_sectors['sector1_time'],
-        mode='lines+markers',
-        name='Sector 1',
-        line=dict(color='#ff1801', width=2),
-        marker=dict(size=6)
-    ))
-    
-    # Add sector 2 times
-    fig.add_trace(go.Scatter(
-        x=driver_sectors['lap_number'],
-        y=driver_sectors['sector2_time'],
-        mode='lines+markers',
-        name='Sector 2',
-        line=dict(color='#1E88E5', width=2),
-        marker=dict(size=6)
-    ))
-    
-    # Add sector 3 times
-    fig.add_trace(go.Scatter(
-        x=driver_sectors['lap_number'],
-        y=driver_sectors['sector3_time'],
-        mode='lines+markers',
-        name='Sector 3',
-        line=dict(color='#4CAF50', width=2),
-        marker=dict(size=6)
-    ))
+    for driver in intervals_data['driver_number'].unique():
+        driver_data = intervals_data[intervals_data['driver_number'] == driver]
+        driver_name = drivers_df[drivers_df['driver_number'] == driver]['driver_name'].iloc[0]
+        
+        fig.add_trace(go.Scatter(
+            x=driver_data['date'],
+            y=driver_data['interval_to_leader'],
+            name=f"{driver_name} ({driver})",
+            mode='lines+markers'
+        ))
     
     fig.update_layout(
-        title=f"Sector Times Progression - {driver_name}",
-        xaxis_title="Lap Number",
-        yaxis_title="Sector Time (seconds)",
-        template="plotly_white",
-        hoverlabel=dict(bgcolor="white"),
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="right",
-            x=1
-        ),
-        margin=dict(t=50, b=50, l=50, r=50)
+        title="Interval to Leader Over Time",
+        xaxis_title="Time",
+        yaxis_title="Interval (seconds)",
+        hovermode='x unified'
     )
     
     st.plotly_chart(fig, use_container_width=True)
+
+def render_position_tab(position_data, session_id):
+    """Render position analysis."""
+    if position_data is None or position_data.empty:
+        st.warning("No position data available for this session.")
+        return
+        
+    st.subheader("Race Position Analysis")
+    
+    # Get driver list for reference
+    drivers_df, _ = F1DataAPI.get_driver_list(session_id)
+    if isinstance(drivers_df, list):
+        drivers_df = pd.DataFrame(drivers_df)
+    
+    # Create position visualization
+    fig = go.Figure()
+    
+    for driver in position_data['driver_number'].unique():
+        driver_data = position_data[position_data['driver_number'] == driver]
+        driver_name = drivers_df[drivers_df['driver_number'] == driver]['driver_name'].iloc[0]
+        
+        fig.add_trace(go.Scatter(
+            x=driver_data['date'],
+            y=driver_data['position'],
+            name=f"{driver_name} ({driver})",
+            mode='lines+markers'
+        ))
+    
+    # Invert y-axis since position 1 is best
+    fig.update_layout(
+        title="Position Changes Over Time",
+        xaxis_title="Time",
+        yaxis_title="Position",
+        yaxis_autorange='reversed',
+        hovermode='x unified'
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+
+def render_pit_stops_tab(pit_data, session_id):
+    """Render pit stop analysis."""
+    if pit_data is None or pit_data.empty:
+        st.warning("No pit stop data available for this session.")
+        return
+        
+    st.subheader("Pit Stop Analysis")
+    
+    # Get driver list for reference
+    drivers_df, _ = F1DataAPI.get_driver_list(session_id)
+    if isinstance(drivers_df, list):
+        drivers_df = pd.DataFrame(drivers_df)
+    
+    # Create pit stop visualization
+    fig = go.Figure()
+    
+    for driver in pit_data['driver_number'].unique():
+        driver_data = pit_data[pit_data['driver_number'] == driver]
+        driver_name = drivers_df[drivers_df['driver_number'] == driver]['driver_name'].iloc[0]
+        
+        fig.add_trace(go.Bar(
+            x=[driver_name],
+            y=[len(driver_data)],
+            name=f"Driver {driver}",
+            text=[len(driver_data)],
+            textposition='auto',
+        ))
+    
+    fig.update_layout(
+        title="Number of Pit Stops by Driver",
+        xaxis_title="Driver",
+        yaxis_title="Number of Pit Stops",
+        showlegend=False
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Display detailed pit stop data
+    st.subheader("Pit Stop Details")
+    st.dataframe(
+        pit_data.merge(
+            drivers_df[['driver_number', 'driver_name']], 
+            on='driver_number'
+        ),
+        use_container_width=True
+    )
+
+def render_team_radio_tab(radio_data, session_id):
+    """Render team radio analysis."""
+    if radio_data is None or radio_data.empty:
+        st.warning("No team radio data available for this session.")
+        return
+        
+    st.subheader("Team Radio Communications")
+    
+    # Get driver list for filtering
+    drivers_df, _ = F1DataAPI.get_driver_list(session_id)
+    if isinstance(drivers_df, list):
+        drivers_df = pd.DataFrame(drivers_df)
+    
+    # Driver selection for filtering
+    selected_driver = st.selectbox(
+        "Filter by Driver",
+        options=[None] + drivers_df['driver_number'].tolist(),
+        format_func=lambda x: "All Drivers" if x is None else f"{drivers_df[drivers_df['driver_number'] == x]['driver_name'].iloc[0]} ({x})"
+    )
+    
+    # Filter data if driver selected
+    if selected_driver:
+        radio_data = radio_data[radio_data['driver_number'] == selected_driver]
+    
+    # Display radio messages
+    for _, message in radio_data.iterrows():
+        with st.expander(
+            f"{message['date']} - Driver {message['driver_number']}"
+        ):
+            if 'recording_url' in message:
+                st.audio(message['recording_url'])
+            st.write(message.get('message', 'No transcript available'))
+
+def render_race_control_tab(control_data):
+    """Render race control messages."""
+    if control_data is None or control_data.empty:
+        st.warning("No race control messages available for this session.")
+        return
+        
+    st.subheader("Race Control Messages")
+    
+    # Create a timeline of race control messages
+    for _, message in control_data.iterrows():
+        with st.expander(
+            f"{message['date']} - {message.get('category', 'General')}"
+        ):
+            st.write(message.get('message', ''))
+            if 'flag' in message:
+                st.info(f"Flag Status: {message['flag']}")
 
 def render_export_tab(processed_laps):
     """Render the data export tab with enhanced functionality."""

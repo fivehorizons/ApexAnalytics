@@ -79,6 +79,14 @@ def render_team_performance(session_id):
                     how='left'
                 )
                 
+                # Ensure we have the required columns
+                if 'lap_number' in team_laps.columns:
+                    # Add 'Laps' column for compatibility
+                    team_laps['Laps'] = team_laps['lap_number']
+                else:
+                    st.error("Missing required lap number data")
+                    return
+                
                 # Create tabs for different team analyses
                 tab1, tab2, tab3, tab4 = st.tabs([
                     "📊 Team Overview",

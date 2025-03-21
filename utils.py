@@ -17,6 +17,7 @@ import scipy
 import matplotlib.pyplot as plt
 import plotly.express as px
 import plotly.graph_objects as go
+import seaborn as sns
 
 # Configure logging with more detail
 logging.basicConfig(
@@ -469,6 +470,291 @@ class F1DataAPI:
             
             return results_df, None
 
+    @staticmethod
+    def get_intervals(session_id: int, driver_number: Optional[int] = None) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
+        """Get interval data for a session, optionally filtered by driver."""
+        if not F1DataAPI._validate_session_id(session_id):
+            return None, f"Invalid session_id: {session_id}"
+            
+        params = {"session_key": session_id}
+        if driver_number is not None:
+            if not isinstance(driver_number, int) or driver_number <= 0:
+                return None, f"Invalid driver_number: {driver_number}"
+            params["driver_number"] = driver_number
+            
+        data, error = F1DataAPI._make_request(
+            f"{F1DataAPI.BASE_URL}/intervals",
+            params=params,
+            endpoint="intervals"
+        )
+        if not data:
+            return None, error
+            
+        if not isinstance(data, list):
+            return None, "Expected list response from intervals endpoint"
+            
+        try:
+            df = pd.DataFrame(data)
+            if df.empty:
+                return df, "No interval data available"
+            return df, None
+        except Exception as e:
+            return None, f"Error creating DataFrame: {str(e)}"
+
+    @staticmethod
+    def get_position_data(session_id: int, driver_number: Optional[int] = None) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
+        """Get position data for a session, optionally filtered by driver."""
+        if not F1DataAPI._validate_session_id(session_id):
+            return None, f"Invalid session_id: {session_id}"
+            
+        params = {"session_key": session_id}
+        if driver_number is not None:
+            if not isinstance(driver_number, int) or driver_number <= 0:
+                return None, f"Invalid driver_number: {driver_number}"
+            params["driver_number"] = driver_number
+            
+        data, error = F1DataAPI._make_request(
+            f"{F1DataAPI.BASE_URL}/position",
+            params=params,
+            endpoint="position"
+        )
+        if not data:
+            return None, error
+            
+        if not isinstance(data, list):
+            return None, "Expected list response from position endpoint"
+            
+        try:
+            df = pd.DataFrame(data)
+            if df.empty:
+                return df, "No position data available"
+            return df, None
+        except Exception as e:
+            return None, f"Error creating DataFrame: {str(e)}"
+
+    @staticmethod
+    def get_stint_data(session_id: int, driver_number: Optional[int] = None) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
+        """Get stint data for a session, optionally filtered by driver."""
+        if not F1DataAPI._validate_session_id(session_id):
+            return None, f"Invalid session_id: {session_id}"
+            
+        params = {"session_key": session_id}
+        if driver_number is not None:
+            if not isinstance(driver_number, int) or driver_number <= 0:
+                return None, f"Invalid driver_number: {driver_number}"
+            params["driver_number"] = driver_number
+            
+        data, error = F1DataAPI._make_request(
+            f"{F1DataAPI.BASE_URL}/stints",
+            params=params,
+            endpoint="stints"
+        )
+        if not data:
+            return None, error
+            
+        if not isinstance(data, list):
+            return None, "Expected list response from stints endpoint"
+            
+        try:
+            df = pd.DataFrame(data)
+            if df.empty:
+                return df, "No stint data available"
+            return df, None
+        except Exception as e:
+            return None, f"Error creating DataFrame: {str(e)}"
+
+    @staticmethod
+    def get_team_radio(session_id: int, driver_number: Optional[int] = None) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
+        """Get team radio communications for a session, optionally filtered by driver."""
+        if not F1DataAPI._validate_session_id(session_id):
+            return None, f"Invalid session_id: {session_id}"
+            
+        params = {"session_key": session_id}
+        if driver_number is not None:
+            if not isinstance(driver_number, int) or driver_number <= 0:
+                return None, f"Invalid driver_number: {driver_number}"
+            params["driver_number"] = driver_number
+            
+        data, error = F1DataAPI._make_request(
+            f"{F1DataAPI.BASE_URL}/team_radio",
+            params=params,
+            endpoint="team_radio"
+        )
+        if not data:
+            return None, error
+            
+        if not isinstance(data, list):
+            return None, "Expected list response from team_radio endpoint"
+            
+        try:
+            df = pd.DataFrame(data)
+            if df.empty:
+                return df, "No team radio data available"
+            return df, None
+        except Exception as e:
+            return None, f"Error creating DataFrame: {str(e)}"
+
+    @staticmethod
+    def get_race_control_messages(session_id: int) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
+        """Get race control messages for a session."""
+        if not F1DataAPI._validate_session_id(session_id):
+            return None, f"Invalid session_id: {session_id}"
+            
+        data, error = F1DataAPI._make_request(
+            f"{F1DataAPI.BASE_URL}/race_control",
+            params={"session_key": session_id},
+            endpoint="race_control"
+        )
+        if not data:
+            return None, error
+            
+        if not isinstance(data, list):
+            return None, "Expected list response from race_control endpoint"
+            
+        try:
+            df = pd.DataFrame(data)
+            if df.empty:
+                return df, "No race control messages available"
+            return df, None
+        except Exception as e:
+            return None, f"Error creating DataFrame: {str(e)}"
+
+    @staticmethod
+    def get_pit_data(session_id: int, driver_number: Optional[int] = None) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
+        """Get pit stop data for a session, optionally filtered by driver."""
+        if not F1DataAPI._validate_session_id(session_id):
+            return None, f"Invalid session_id: {session_id}"
+            
+        params = {"session_key": session_id}
+        if driver_number is not None:
+            if not isinstance(driver_number, int) or driver_number <= 0:
+                return None, f"Invalid driver_number: {driver_number}"
+            params["driver_number"] = driver_number
+            
+        data, error = F1DataAPI._make_request(
+            f"{F1DataAPI.BASE_URL}/pit",
+            params=params,
+            endpoint="pit"
+        )
+        if not data:
+            return None, error
+            
+        if not isinstance(data, list):
+            return None, "Expected list response from pit endpoint"
+            
+        try:
+            df = pd.DataFrame(data)
+            if df.empty:
+                return df, "No pit data available"
+            return df, None
+        except Exception as e:
+            return None, f"Error creating DataFrame: {str(e)}"
+
+    @staticmethod
+    def get_location_data(session_id: int, driver_number: Optional[int] = None) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
+        """Get location data for a session, optionally filtered by driver."""
+        if not F1DataAPI._validate_session_id(session_id):
+            return None, f"Invalid session_id: {session_id}"
+            
+        params = {"session_key": session_id}
+        if driver_number is not None:
+            if not isinstance(driver_number, int) or driver_number <= 0:
+                return None, f"Invalid driver_number: {driver_number}"
+            params["driver_number"] = driver_number
+            
+        data, error = F1DataAPI._make_request(
+            f"{F1DataAPI.BASE_URL}/location",
+            params=params,
+            endpoint="location"
+        )
+        if not data:
+            return None, error
+            
+        if not isinstance(data, list):
+            return None, "Expected list response from location endpoint"
+            
+        try:
+            df = pd.DataFrame(data)
+            if df.empty:
+                return df, "No location data available"
+            return df, None
+        except Exception as e:
+            return None, f"Error creating DataFrame: {str(e)}"
+
+    @staticmethod
+    def get_sector_times(session_id: int, driver_number: Optional[int] = None) -> Tuple[Optional[pd.DataFrame], Optional[str]]:
+        """
+        Get sector times for a session, optionally filtered by driver.
+        
+        This method extracts sector time data from the laps endpoint, which contains sector information.
+        """
+        if not F1DataAPI._validate_session_id(session_id):
+            return None, f"Invalid session_id: {session_id}"
+            
+        # First, get lap data which contains sector information
+        lap_data, error = F1DataAPI.get_lap_times(session_id, driver_number)
+        if error:
+            return None, f"Error getting lap data: {error}"
+            
+        if lap_data is None or lap_data.empty:
+            return None, "No lap data available for sector analysis"
+            
+        # Check if sector data is available in the lap data
+        sector_cols = [col for col in lap_data.columns if 'sector' in col.lower()]
+        
+        if not sector_cols:
+            # If no sector columns found, we need to extract from 'sectors' column if it exists
+            if 'sectors' in lap_data.columns:
+                try:
+                    # Try to normalize the sectors column which might contain JSON or dict data
+                    # First, ensure the sectors data is properly loaded as dictionaries
+                    lap_data['sectors'] = lap_data['sectors'].apply(
+                        lambda x: json.loads(x) if isinstance(x, str) else x
+                    )
+                    
+                    # Normalize the sectors column into separate columns
+                    sectors_df = pd.json_normalize(lap_data['sectors'])
+                    
+                    # Check for common sector column names in the normalized data
+                    potential_sector_cols = [
+                        col for col in sectors_df.columns 
+                        if any(s in col.lower() for s in ['sector', 's1', 's2', 's3', '1', '2', '3'])
+                    ]
+                    
+                    if potential_sector_cols:
+                        # Join the normalized sector data with the original lap data
+                        for col in potential_sector_cols:
+                            new_col_name = col
+                            if '.' in col:  # Handle nested JSON keys
+                                new_col_name = col.replace('.', '_')
+                            lap_data[f'sector_{new_col_name}'] = sectors_df[col]
+                    else:
+                        return None, "No sector columns found in sectors data"
+                        
+                except Exception as e:
+                    return None, f"Error processing sectors data: {str(e)}"
+            else:
+                return None, "No sector data available in lap data"
+        
+        # At this point, we should have sector data in some form
+        # Let's select only the relevant columns for our sector analysis
+        sector_cols = [col for col in lap_data.columns if 'sector' in col.lower()]
+        
+        if not sector_cols:
+            return None, "Failed to extract sector data from lap information"
+            
+        # Create a new DataFrame with lap information and sector times
+        result_cols = ['date', 'driver_number', 'lap_number', 'lap_time'] + sector_cols
+        result_cols = [col for col in result_cols if col in lap_data.columns]
+        
+        result_df = lap_data[result_cols].copy()
+        
+        # Convert sector times to numeric values where possible
+        for col in sector_cols:
+            result_df[col] = pd.to_numeric(result_df[col], errors='coerce')
+        
+        return result_df, None
+
 def process_lap_times(lap_data: pd.DataFrame) -> pd.DataFrame:
     """Process and clean lap time data."""
     if lap_data is None or lap_data.empty:
@@ -581,89 +867,384 @@ def predict_lap_times(historical_laps: pd.DataFrame, driver_number: int) -> Dict
         'confidence': model.score(X, y)
     }
 
-def analyze_sector_performance(lap_data: pd.DataFrame) -> Dict:
-    """Analyze performance across different sectors."""
+def analyze_sector_performance(lap_data: pd.DataFrame, driver_number: Optional[int] = None) -> Dict:
+    """
+    Analyze performance across different sectors with enhanced capability.
+    
+    Parameters:
+    -----------
+    lap_data : pd.DataFrame
+        DataFrame containing lap data with sector information
+    driver_number : int, optional
+        If provided, analyze only this driver's sector performance
+        
+    Returns:
+    --------
+    Dict
+        Dictionary with sector performance statistics
+    """
     if lap_data.empty:
         return {}
     
-    # Check if we have sector data in the DataFrame
+    # Filter by driver if specified
+    if driver_number is not None:
+        lap_data = lap_data[lap_data['driver_number'] == driver_number]
+        
+        if lap_data.empty:
+            return {}
+    
+    # Identify sector columns in the DataFrame
     sector_columns = [col for col in lap_data.columns if 'sector' in col.lower()]
     
-    # If we have direct sector columns
-    if any(col in ['sector1_time', 'sector2_time', 'sector3_time'] for col in lap_data.columns):
-        try:
-            analysis = {}
-            
-            # Process each sector if available
-            if 'sector1_time' in lap_data.columns:
-                sector1_times = pd.to_numeric(lap_data['sector1_time'], errors='coerce').dropna()
-                if not sector1_times.empty:
-                    analysis['sector1_avg'] = sector1_times.mean()
-                    analysis['sector1_std'] = sector1_times.std()
-                    analysis['sector1_min'] = sector1_times.min()
-                    
-            if 'sector2_time' in lap_data.columns:
-                sector2_times = pd.to_numeric(lap_data['sector2_time'], errors='coerce').dropna()
-                if not sector2_times.empty:
-                    analysis['sector2_avg'] = sector2_times.mean()
-                    analysis['sector2_std'] = sector2_times.std()
-                    analysis['sector2_min'] = sector2_times.min()
-                    
-            if 'sector3_time' in lap_data.columns:
-                sector3_times = pd.to_numeric(lap_data['sector3_time'], errors='coerce').dropna()
-                if not sector3_times.empty:
-                    analysis['sector3_avg'] = sector3_times.mean()
-                    analysis['sector3_std'] = sector3_times.std()
-                    analysis['sector3_min'] = sector3_times.min()
-                    
-            return analysis
-        except Exception as e:
-            logger.error(f"Error analyzing sector times: {e}")
-            return {}
+    if not sector_columns:
+        logger.warning("No sector data found in lap_data DataFrame")
+        return {}
     
-    # If we have a sector_times column that contains JSON or dict data
-    elif 'sector_times' in lap_data.columns:
-        try:
-            # Try to normalize the sector_times column which might contain JSON or dict data
-            sectors_df = pd.json_normalize(lap_data['sector_times'].apply(lambda x: 
-                                          json.loads(x) if isinstance(x, str) else x))
+    # Map different possible sector column naming patterns
+    sector_mapping = {}
+    for col in sector_columns:
+        if 'sector1' in col.lower() or 's1' in col.lower() or col.endswith('1'):
+            sector_mapping['sector1'] = col
+        elif 'sector2' in col.lower() or 's2' in col.lower() or col.endswith('2'):
+            sector_mapping['sector2'] = col
+        elif 'sector3' in col.lower() or 's3' in col.lower() or col.endswith('3'):
+            sector_mapping['sector3'] = col
+    
+    try:
+        analysis = {}
+        
+        # Process each sector if available
+        for sector_key, column_name in sector_mapping.items():
+            sector_times = pd.to_numeric(lap_data[column_name], errors='coerce').dropna()
             
-            analysis = {}
-            
-            # Check for different possible column names
-            sector1_col = next((col for col in sectors_df.columns if col in ['1', 'sector1', 'S1']), None)
-            sector2_col = next((col for col in sectors_df.columns if col in ['2', 'sector2', 'S2']), None)
-            sector3_col = next((col for col in sectors_df.columns if col in ['3', 'sector3', 'S3']), None)
-            
-            if sector1_col and not sectors_df[sector1_col].empty:
-                sector1_times = pd.to_numeric(sectors_df[sector1_col], errors='coerce').dropna()
-                if not sector1_times.empty:
-                    analysis['sector1_avg'] = sector1_times.mean()
-                    analysis['sector1_std'] = sector1_times.std()
-                    analysis['sector1_min'] = sector1_times.min()
-            
-            if sector2_col and not sectors_df[sector2_col].empty:
-                sector2_times = pd.to_numeric(sectors_df[sector2_col], errors='coerce').dropna()
-                if not sector2_times.empty:
-                    analysis['sector2_avg'] = sector2_times.mean()
-                    analysis['sector2_std'] = sector2_times.std()
-                    analysis['sector2_min'] = sector2_times.min()
-            
-            if sector3_col and not sectors_df[sector3_col].empty:
-                sector3_times = pd.to_numeric(sectors_df[sector3_col], errors='coerce').dropna()
-                if not sector3_times.empty:
-                    analysis['sector3_avg'] = sector3_times.mean()
-                    analysis['sector3_std'] = sector3_times.std()
-                    analysis['sector3_min'] = sector3_times.min()
+            if not sector_times.empty:
+                analysis[f'{sector_key}_min'] = float(sector_times.min())
+                analysis[f'{sector_key}_avg'] = float(sector_times.mean())
+                analysis[f'{sector_key}_median'] = float(sector_times.median())
+                analysis[f'{sector_key}_std'] = float(sector_times.std())
                 
-            return analysis
-        except Exception as e:
-            logger.error(f"Error processing sector_times column: {e}")
-            return {}
+                # Find the lap number with the best sector time
+                best_lap_idx = sector_times.idxmin()
+                if 'lap_number' in lap_data.columns:
+                    analysis[f'{sector_key}_best_lap'] = int(lap_data.loc[best_lap_idx, 'lap_number'])
+                
+                # Calculate more advanced statistics if we have enough data points
+                if len(sector_times) >= 3:
+                    analysis[f'{sector_key}_consistency'] = float(1 / (sector_times.std() / sector_times.mean()))
+                    analysis[f'{sector_key}_trend'] = 'improving' if np.polyfit(range(len(sector_times)), sector_times, 1)[0] < 0 else 'declining'
+                
+        # If we have all three sectors, calculate combined sector stats
+        if all(f'{sector}_min' in analysis for sector in ['sector1', 'sector2', 'sector3']):
+            analysis['theoretical_best_lap'] = analysis['sector1_min'] + analysis['sector2_min'] + analysis['sector3_min']
+            analysis['theoretical_vs_actual'] = analysis['theoretical_best_lap'] - lap_data['lap_time_seconds'].min()
+            
+            # Find sector differences between drivers
+            if driver_number is None and 'driver_number' in lap_data.columns:
+                drivers = lap_data['driver_number'].unique()
+                if len(drivers) > 1:
+                    # Get best sector times by driver
+                    driver_sector_bests = {}
+                    for driver in drivers:
+                        driver_data = lap_data[lap_data['driver_number'] == driver]
+                        for sector_key in ['sector1', 'sector2', 'sector3']:
+                            if sector_key in sector_mapping:
+                                sector_col = sector_mapping[sector_key]
+                                sector_times = pd.to_numeric(driver_data[sector_col], errors='coerce').dropna()
+                                if not sector_times.empty:
+                                    if driver not in driver_sector_bests:
+                                        driver_sector_bests[driver] = {}
+                                    driver_sector_bests[driver][sector_key] = sector_times.min()
+                    
+                    # Add sector comparisons to analysis
+                    analysis['driver_sector_bests'] = driver_sector_bests
+                
+        return analysis
+    except Exception as e:
+        logger.error(f"Error analyzing sector times: {e}")
+        return {}
+
+def visualize_sector_comparison(sector_data: Dict, title: str = 'Sector Time Comparison') -> plt.Figure:
+    """
+    Create a visualization comparing sector times across drivers.
     
-    # No sector data found
-    logger.warning("No sector data found in lap_data DataFrame")
-    return {}
+    Parameters:
+    -----------
+    sector_data : Dict
+        Dictionary with sector performance statistics from analyze_sector_performance
+    title : str
+        Title for the visualization
+        
+    Returns:
+    --------
+    plt.Figure
+        Matplotlib figure object with sector comparison visualization
+    """
+    if not sector_data or 'driver_sector_bests' not in sector_data:
+        return plt.figure()  # Return empty figure if no data
+    
+    driver_data = sector_data['driver_sector_bests']
+    drivers = list(driver_data.keys())
+    
+    # Prepare data for plotting
+    sector_names = ['sector1', 'sector2', 'sector3']
+    data = {
+        'Driver': [],
+        'Sector': [],
+        'Time': []
+    }
+    
+    for driver in drivers:
+        for sector in sector_names:
+            if sector in driver_data[driver]:
+                data['Driver'].append(str(driver))
+                data['Sector'].append(sector)
+                data['Time'].append(driver_data[driver][sector])
+    
+    # Create DataFrame for plotting
+    df = pd.DataFrame(data)
+    
+    # Create visualization
+    fig, ax = plt.subplots(figsize=(12, 8))
+    
+    # Plot grouped bar chart
+    sectors = df['Sector'].unique()
+    x = np.arange(len(drivers))
+    width = 0.25
+    
+    for i, sector in enumerate(sectors):
+        sector_data = df[df['Sector'] == sector]
+        sector_times = []
+        
+        for driver in drivers:
+            driver_sector = sector_data[sector_data['Driver'] == str(driver)]
+            if not driver_sector.empty:
+                sector_times.append(driver_sector['Time'].values[0])
+            else:
+                sector_times.append(0)
+        
+        ax.bar(x + (i - 1) * width, sector_times, width, label=f'Sector {sector[-1]}')
+    
+    # Formatting
+    ax.set_xticks(x)
+    ax.set_xticklabels(drivers)
+    ax.set_ylabel('Time (seconds)')
+    ax.set_title(title)
+    ax.legend()
+    
+    # Add value labels on bars
+    for i, sector in enumerate(sectors):
+        sector_data = df[df['Sector'] == sector]
+        for j, driver in enumerate(drivers):
+            driver_sector = sector_data[sector_data['Driver'] == str(driver)]
+            if not driver_sector.empty:
+                value = driver_sector['Time'].values[0]
+                ax.text(j + (i - 1) * width, value + 0.1, f'{value:.2f}', 
+                        ha='center', va='bottom', fontsize=8)
+    
+    plt.tight_layout()
+    return fig
+
+def create_sector_heatmap(lap_data: pd.DataFrame, driver_number: Optional[int] = None) -> plt.Figure:
+    """
+    Create a heatmap visualization of sector times across laps.
+    
+    Parameters:
+    -----------
+    lap_data : pd.DataFrame
+        DataFrame containing lap data with sector information
+    driver_number : int, optional
+        If provided, visualize only this driver's sector times
+        
+    Returns:
+    --------
+    plt.Figure
+        Matplotlib figure object with sector heatmap visualization
+    """
+    if lap_data.empty:
+        return plt.figure()  # Return empty figure if no data
+    
+    # Filter by driver if specified
+    if driver_number is not None:
+        lap_data = lap_data[lap_data['driver_number'] == driver_number]
+        
+        if lap_data.empty:
+            return plt.figure()
+    
+    # Identify sector columns in the DataFrame
+    sector_columns = [col for col in lap_data.columns if 'sector' in col.lower()]
+    
+    if not sector_columns or 'lap_number' not in lap_data.columns:
+        return plt.figure()
+    
+    # Map different possible sector column naming patterns
+    sector_mapping = {}
+    for col in sector_columns:
+        if 'sector1' in col.lower() or 's1' in col.lower() or col.endswith('1'):
+            sector_mapping['Sector 1'] = col
+        elif 'sector2' in col.lower() or 's2' in col.lower() or col.endswith('2'):
+            sector_mapping['Sector 2'] = col
+        elif 'sector3' in col.lower() or 's3' in col.lower() or col.endswith('3'):
+            sector_mapping['Sector 3'] = col
+    
+    if not sector_mapping:
+        return plt.figure()
+    
+    # Prepare data for heatmap
+    heatmap_data = []
+    
+    # Sort lap data by lap number
+    lap_data = lap_data.sort_values('lap_number')
+    
+    # Convert sector times to numeric and extract relevant data
+    for idx, row in lap_data.iterrows():
+        lap_num = row['lap_number']
+        
+        for sector_name, column_name in sector_mapping.items():
+            try:
+                sector_time = float(row[column_name])
+                heatmap_data.append({
+                    'Lap': lap_num,
+                    'Sector': sector_name,
+                    'Time': sector_time
+                })
+            except (ValueError, TypeError):
+                # Skip this sector if value is not numeric
+                continue
+    
+    if not heatmap_data:
+        return plt.figure()
+    
+    # Create DataFrame for heatmap
+    heatmap_df = pd.DataFrame(heatmap_data)
+    
+    # Create pivot table for heatmap
+    pivot_table = heatmap_df.pivot_table(
+        index='Lap', 
+        columns='Sector', 
+        values='Time',
+        aggfunc='first'  # Take the first value if there are duplicates
+    )
+    
+    # Create heatmap visualization
+    fig, ax = plt.subplots(figsize=(12, 8))
+    
+    # Create heatmap with sector times
+    sns_heatmap = plt.imshow(
+        pivot_table.values,
+        cmap='coolwarm_r',  # Reversed coolwarm colormap (red=fast, blue=slow)
+        aspect='auto',
+        interpolation='nearest'
+    )
+    
+    # Add colorbar
+    cbar = plt.colorbar(sns_heatmap)
+    cbar.set_label('Sector Time (seconds)')
+    
+    # Set labels and title
+    title = f'Sector Times Heatmap - Driver {driver_number}' if driver_number else 'Sector Times Heatmap'
+    plt.title(title)
+    plt.xlabel('Sectors')
+    plt.ylabel('Lap Number')
+    
+    # Set y-ticks (lap numbers)
+    plt.yticks(range(len(pivot_table.index)), pivot_table.index)
+    
+    # Set x-ticks (sector names)
+    plt.xticks(range(len(pivot_table.columns)), pivot_table.columns)
+    
+    plt.tight_layout()
+    return fig
+
+def create_interactive_sector_chart(lap_data: pd.DataFrame, driver_number: Optional[int] = None) -> go.Figure:
+    """
+    Create an interactive Plotly chart showing sector times across laps.
+    
+    Parameters:
+    -----------
+    lap_data : pd.DataFrame
+        DataFrame containing lap data with sector information
+    driver_number : int, optional
+        If provided, visualize only this driver's sector times
+        
+    Returns:
+    --------
+    go.Figure
+        Plotly figure object with interactive sector visualization
+    """
+    if lap_data.empty:
+        return go.Figure()  # Return empty figure if no data
+    
+    # Filter by driver if specified
+    if driver_number is not None:
+        lap_data = lap_data[lap_data['driver_number'] == driver_number]
+        
+        if lap_data.empty:
+            return go.Figure()
+    
+    # Identify sector columns in the DataFrame
+    sector_columns = [col for col in lap_data.columns if 'sector' in col.lower()]
+    
+    if not sector_columns or 'lap_number' not in lap_data.columns:
+        return go.Figure()
+    
+    # Map different possible sector column naming patterns
+    sector_mapping = {}
+    for col in sector_columns:
+        if 'sector1' in col.lower() or 's1' in col.lower() or col.endswith('1'):
+            sector_mapping['Sector 1'] = col
+        elif 'sector2' in col.lower() or 's2' in col.lower() or col.endswith('2'):
+            sector_mapping['Sector 2'] = col
+        elif 'sector3' in col.lower() or 's3' in col.lower() or col.endswith('3'):
+            sector_mapping['Sector 3'] = col
+    
+    if not sector_mapping:
+        return go.Figure()
+    
+    # Sort lap data by lap number
+    lap_data = lap_data.sort_values('lap_number')
+    
+    # Create Plotly figure
+    fig = go.Figure()
+    
+    # Add traces for each sector
+    for sector_name, column_name in sector_mapping.items():
+        # Convert sector times to numeric
+        sector_times = pd.to_numeric(lap_data[column_name], errors='coerce')
+        
+        # Add trace for this sector
+        fig.add_trace(go.Scatter(
+            x=lap_data['lap_number'],
+            y=sector_times,
+            mode='lines+markers',
+            name=sector_name,
+            hovertemplate='Lap: %{x}<br>' +
+                          f'{sector_name}: %{{y:.3f}}s<br>'
+        ))
+    
+    # Add total lap time for comparison
+    if 'lap_time_seconds' in lap_data.columns:
+        fig.add_trace(go.Scatter(
+            x=lap_data['lap_number'],
+            y=lap_data['lap_time_seconds'],
+            mode='lines+markers',
+            name='Total Lap Time',
+            line=dict(dash='dash'),
+            hovertemplate='Lap: %{x}<br>' +
+                          'Total Lap Time: %{y:.3f}s<br>'
+        ))
+    
+    # Update layout
+    title = f'Sector Times Analysis - Driver {driver_number}' if driver_number else 'Sector Times Analysis'
+    fig.update_layout(
+        title=title,
+        xaxis_title='Lap Number',
+        yaxis_title='Time (seconds)',
+        legend_title='Sector',
+        hovermode='closest',
+        template='plotly_white'
+    )
+    
+    return fig
 
 def export_data(data: pd.DataFrame, format: str = 'csv') -> bytes:
     """Export data in various formats."""
