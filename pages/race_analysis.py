@@ -367,22 +367,41 @@ def render_intervals_tab(intervals_data, session_id):
     if isinstance(drivers_df, list):
         drivers_df = pd.DataFrame(drivers_df)
     
+    # Check available columns and find the interval column
+    interval_columns = [col for col in intervals_data.columns if 'interval' in col.lower()]
+    if not interval_columns:
+        st.warning("No interval data found in the dataset.")
+        st.write("Available columns:", intervals_data.columns.tolist())
+        return
+        
+    # Use the first found interval column
+    interval_column = interval_columns[0]
+    
     # Create interval visualization
     fig = go.Figure()
     
     for driver in intervals_data['driver_number'].unique():
-        driver_data = intervals_data[intervals_data['driver_number'] == driver]
-        driver_name = drivers_df[drivers_df['driver_number'] == driver]['driver_name'].iloc[0]
-        
-        fig.add_trace(go.Scatter(
-            x=driver_data['date'],
-            y=driver_data['interval_to_leader'],
-            name=f"{driver_name} ({driver})",
-            mode='lines+markers'
-        ))
+        try:
+            driver_data = intervals_data[intervals_data['driver_number'] == driver]
+            
+            # Get driver name from reference data
+            driver_info = drivers_df[drivers_df['driver_number'] == driver]
+            driver_name = f"Driver {driver}"  # Default name
+            if not driver_info.empty:
+                driver_name = driver_info['driver_name'].iloc[0]
+            
+            fig.add_trace(go.Scatter(
+                x=driver_data['date'],
+                y=driver_data[interval_column],
+                name=f"{driver_name} ({driver})",
+                mode='lines+markers'
+            ))
+        except Exception as e:
+            st.warning(f"Error plotting data for driver {driver}: {str(e)}")
+            continue
     
     fig.update_layout(
-        title="Interval to Leader Over Time",
+        title=f"Intervals Over Time (using {interval_column})",
         xaxis_title="Time",
         yaxis_title="Interval (seconds)",
         hovermode='x unified'
