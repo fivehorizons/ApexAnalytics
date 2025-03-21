@@ -121,6 +121,56 @@ def render_sidebar():
     with st.sidebar:
         st.title("F1 Data Analysis")
         
+        # Add navigation
+        st.subheader("Navigation")
+        
+        # Define the navigation options
+        nav_options = [
+            {"name": "Dashboard", "icon": "📊"},
+            {"name": "Race Analysis", "icon": "🏁"},
+            {"name": "Driver Comparison", "icon": "🏎️"},
+            {"name": "Team Performance", "icon": "🏆"},
+            {"name": "Predictive Analytics", "icon": "📈"}
+        ]
+        
+        # Add navigation links with styling
+        for option in nav_options:
+            # Check if this is the current selection
+            is_selected = st.session_state.analysis_selection == option["name"]
+            
+            # Apply custom styling to show which option is selected
+            button_text = f"{option['icon']} {option['name']}"
+            
+            # Create a custom style string for the button
+            if is_selected:
+                # Custom styling for the button container
+                st.markdown(
+                    f"""
+                    <style>
+                    [data-testid="stButton"][aria-describedby="nav_{option['name'].lower().replace(' ', '_')}"] button {{
+                        background-color: rgba(255, 24, 1, 0.1) !important;
+                        color: #ff1801 !important;
+                        font-weight: bold !important;
+                        border-left: 4px solid #ff1801 !important;
+                    }}
+                    </style>
+                    """,
+                    unsafe_allow_html=True
+                )
+            
+            # Create the button with consistent styling
+            if st.button(
+                button_text,
+                key=f"nav_{option['name'].lower().replace(' ', '_')}",
+                use_container_width=True,
+                help=f"View {option['name']} page"
+            ):
+                st.session_state.analysis_selection = option["name"]
+                # Force a rerun to update the UI
+                st.rerun()
+        
+        st.divider()
+        
         # Add refresh and health check buttons
         col1, col2 = st.columns(2)
         with col1:
@@ -242,9 +292,12 @@ def main():
             from pages.team_performance import render_team_performance
             from pages.predictive_analytics import render_predictive_analytics
             
+            # Show which analysis is selected
+            st.header(f"Select Analysis")
+            
             # Analysis selection with better error handling
             analysis = st.radio(
-                "Select Analysis",
+                "",  # Empty label as we use the header above
                 ["Dashboard", "Race Analysis", "Driver Comparison", "Team Performance", "Predictive Analytics"],
                 horizontal=True,
                 key="analysis_selection",
@@ -252,6 +305,9 @@ def main():
             )
             
             try:
+                # Get the selected analysis from session state
+                analysis = st.session_state.analysis_selection
+                
                 if analysis == "Dashboard":
                     render_dashboard(session_id, st.session_state.selected_session)
                 elif analysis == "Race Analysis":

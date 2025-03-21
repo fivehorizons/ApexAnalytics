@@ -8,6 +8,34 @@
     padding: 2rem 1rem;
 }
 
+/* Sidebar navigation */
+.stButton[data-testid*="nav_"] button {
+    background: transparent;
+    border-radius: 4px;
+    color: #333;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    transition: all 0.2s;
+    width: 100%;
+}
+
+.stButton[data-testid*="nav_"] button:hover {
+    background: rgba(255, 24, 1, 0.1);
+    color: #ff1801;
+}
+
+.stButton[data-testid*="nav_dashboard"] button.selected,
+.stButton[data-testid*="nav_race_analysis"] button.selected,
+.stButton[data-testid*="nav_driver_comparison"] button.selected,
+.stButton[data-testid*="nav_team_performance"] button.selected,
+.stButton[data-testid*="nav_predictive_analytics"] button.selected {
+    background: rgba(255, 24, 1, 0.1);
+    color: #ff1801;
+    font-weight: 600;
+}
+
 /* Headers */
 h1 {
     color: #ff1801;
