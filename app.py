@@ -292,17 +292,8 @@ def main():
             from pages.team_performance import render_team_performance
             from pages.predictive_analytics import render_predictive_analytics
             
-            # Show which analysis is selected
-            st.header(f"Select Analysis")
-            
-            # Analysis selection with better error handling
-            analysis = st.radio(
-                "",  # Empty label as we use the header above
-                ["Dashboard", "Race Analysis", "Driver Comparison", "Team Performance", "Predictive Analytics"],
-                horizontal=True,
-                key="analysis_selection",
-                index=0  # Add default index to ensure it's always initialized
-            )
+            # Note: Radio button selection has been removed to simplify the UI
+            # Navigation is now handled exclusively through the sidebar
             
             try:
                 # Get the selected analysis from session state
