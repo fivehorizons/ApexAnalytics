@@ -8,4 +8,5 @@ python-dateutil
 joblib
 openpyxl
 matplotlib
-seaborn 
+seaborn
+xlsxwriter 
