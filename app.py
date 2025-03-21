@@ -84,6 +84,16 @@ def initialize_session_state():
             if key not in st.session_state:
                 st.session_state[key] = default_value
                 
+        # Hide non-functional sidebar links with CSS
+        st.markdown("""
+        <style>
+        /* Hide the default sidebar navigation items at the top */
+        section[data-testid="stSidebar"] > div > div:first-child > div:first-child > ul {
+            display: none !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+                
     except Exception as e:
         logger.error(f"Error initializing session state: {str(e)}")
         st.error("Error initializing application. Please refresh the page.")
@@ -278,6 +288,23 @@ def main():
     try:
         # Initialize session state
         initialize_session_state()
+        
+        # Add CSS to hide the non-functional default sidebar links
+        hide_sidebar_nav = """
+        <style>
+        /* Hide the default sidebar navigation at the top */
+        section[data-testid="stSidebar"] ul:first-of-type,
+        section[data-testid="stSidebar"] .element-container:nth-child(-n+6) div[data-testid="stVerticalBlock"] div[data-testid="stVerticalBlock"] > div:first-child ul,
+        .st-emotion-cache-16idsys,
+        .st-emotion-cache-16txtl3 ul:first-of-type {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            pointer-events: none !important;
+        }
+        </style>
+        """
+        st.markdown(hide_sidebar_nav, unsafe_allow_html=True)
         
         # Render sidebar
         render_sidebar()

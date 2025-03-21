@@ -8,6 +8,15 @@
     padding: 2rem 1rem;
 }
 
+/* Hide the default sidebar navigation links at the top */
+.st-emotion-cache-16txtl3 ul:first-of-type,
+section[data-testid="stSidebar"] .st-emotion-cache-16txtl3 > div:first-child > ul,
+section[data-testid="stSidebar"] > div > div:first-child > div:first-child > ul,
+section[data-testid="stSidebar"] ul.st-emotion-cache-16idsys {
+    display: none !important;
+    visibility: hidden !important;
+}
+
 /* Sidebar navigation */
 .stButton[data-testid*="nav_"] button {
     background: transparent;
